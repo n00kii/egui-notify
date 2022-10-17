@@ -196,11 +196,14 @@ impl Toasts {
                     update = true;
                 }
             }
-
+            
+            let toast_font_size = 16.;
+            let inner_toast_height = toast.height - padding.y * 2.;
+            let icon_size = weighted_average(toast_font_size, inner_toast_height, 0.6);
             // Create toast label
             let caption_galley = ctx.fonts().layout(
                 toast.caption.clone(),
-                FontId::proportional(16.),
+                FontId::proportional(toast_font_size),
                 Color32::LIGHT_GRAY,
                 f32::INFINITY,
             );
@@ -210,7 +213,7 @@ impl Toasts {
 
 
             // Create toast icon
-            let icon_font = FontId::proportional(toast.height - padding.y * 2.);
+            let icon_font = FontId::proportional(icon_size);
             let icon_galley = if matches!(toast.level, ToastLevel::Info) {
                 Some(
                     ctx.fonts()
@@ -243,7 +246,7 @@ impl Toasts {
 
             // Create closing cross
             let cross_galley = if toast.closable {
-                let cross_fid = FontId::proportional(toast.height - padding.y * 2.);
+                let cross_fid = FontId::proportional(icon_size);
                 let cross_galley = ctx.fonts().layout(
                     "❌".into(),
                     cross_fid,
@@ -379,4 +382,8 @@ impl Default for Toasts {
 
 fn ease_in_cubic(x: f32) -> f32 {
     1. - (1. - x).powi(3)
+}
+
+fn weighted_average(x: f32, y: f32, x_weight: f32) -> f32 {
+    (x * x_weight) + y * (1. - x_weight)
 }
