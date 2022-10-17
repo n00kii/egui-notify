@@ -84,8 +84,8 @@ fn main() {
         NativeOptions::default(),
         Box::new(|cc| {
             Box::new(ExampleApp {
-                caption: "Hello! It's gj
-                caption".into(),
+                caption: 
+                "Hello! It's a multiline caption.\nHere are some more lines for\nsize testing.\nAnd another one.".into(),
                 toasts: Toasts::default(),
                 closable: true,
                 expires: true,

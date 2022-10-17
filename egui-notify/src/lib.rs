@@ -199,7 +199,7 @@ impl Toasts {
             
             let toast_font_size = 16.;
             let inner_toast_height = toast.height - padding.y * 2.;
-            let icon_size = weighted_average(toast_font_size, inner_toast_height, 0.6);
+            let icon_size = weighted_average(toast_font_size, inner_toast_height, 0.8);
             // Create toast label
             let caption_galley = ctx.fonts().layout(
                 toast.caption.clone(),
@@ -246,7 +246,7 @@ impl Toasts {
 
             // Create closing cross
             let cross_galley = if toast.closable {
-                let cross_fid = FontId::proportional(icon_size);
+                let cross_fid = FontId::proportional(toast_font_size);
                 let cross_galley = ctx.fonts().layout(
                     "❌".into(),
                     cross_fid,
