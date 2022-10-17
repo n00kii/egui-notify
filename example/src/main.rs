@@ -83,16 +83,9 @@ fn main() {
         "example",
         NativeOptions::default(),
         Box::new(|cc| {
-            cc.egui_ctx.set_style(Style::default());
-
-            let mut font_def = FontDefinitions::default();
-            for data in font_def.font_data.values_mut() {
-                data.tweak.scale = 1.5;
-            }
-            cc.egui_ctx.set_fonts(font_def);
-
             Box::new(ExampleApp {
-                caption: "Hello! It's caption".into(),
+                caption: "Hello! It's gj
+                caption".into(),
                 toasts: Toasts::default(),
                 closable: true,
                 expires: true,
