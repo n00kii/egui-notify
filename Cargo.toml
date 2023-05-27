@@ -8,15 +8,10 @@ description = "Simple notifications library for EGUI"
 authors = ["ItsEthra"]
 readme = "README.md"
 
-[lib]
-path = "src/lib.rs"
-
 [dependencies]
-egui = { version = "0.22", default-features = false }
+egui = "0.22.0"
 egui-phosphor = "0.1.1"
 
 [dev-dependencies]
-eframe = { version = "0.22", default-features = false, features = [
-    "default_fonts",
-    "glow",
-] }
+eframe = "0.22.0"
+egui_extras = "0.22.0"

@@ -49,8 +49,9 @@ pub fn load_icon_font(ctx: &Context) {
 /// # });
 /// ```
 pub struct Toasts {
+    /// The attachment point for toasts
+    pub anchor: Align2,
     toasts: Vec<Toast>,
-    anchor: Align2,
     margin: Vec2,
     spacing: f32,
     padding: Vec2,
@@ -64,7 +65,7 @@ impl Toasts {
     /// Creates new [`Toasts`] instance.
     pub const fn new() -> Self {
         Self {
-            anchor: Align2::RIGHT_TOP,
+            anchor: Align2::RIGHT_BOTTOM,
             margin: vec2(8., 8.),
             toasts: vec![],
             spacing: 8.,

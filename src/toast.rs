@@ -6,9 +6,10 @@ use std::{
 };
 
 /// Level of importance
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
 #[allow(missing_docs)]
 pub enum ToastLevel {
+    #[default]
     Info,
     Warning,
     Error,
@@ -17,7 +18,8 @@ pub enum ToastLevel {
 }
 
 impl ToastLevel {
-    pub(crate) fn color(&self) -> Color32 {
+    /// Color used for the level.
+    pub fn color(&self) -> Color32 {
         match self {
             Self::Info => INFO_COLOR,
             Self::Warning => WARNING_COLOR,
@@ -38,12 +40,6 @@ impl Display for ToastLevel {
             Self::None => "",
         };
         write!(f, "{icon}")
-    }
-}
-
-impl Default for ToastLevel {
-    fn default() -> Self {
-        ToastLevel::Info
     }
 }
 
