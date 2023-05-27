@@ -1,5 +1,5 @@
-use crate::{Anchor, TOAST_HEIGHT, TOAST_WIDTH, INFO_COLOR, WARNING_COLOR, SUCCESS_COLOR, ERROR_COLOR};
-use egui::{pos2, vec2, Align2, Color32, Pos2, Rect, Vec2};
+use crate::{ERROR_COLOR, INFO_COLOR, SUCCESS_COLOR, TOAST_HEIGHT, TOAST_WIDTH, WARNING_COLOR};
+use egui::{vec2, Color32, Vec2};
 use std::{
     fmt::{Debug, Display},
     time::{Duration, SystemTime},
@@ -250,12 +250,5 @@ impl Toast {
 
     pub(crate) fn size(&self) -> Vec2 {
         vec2(self.width, self.height)
-    }
-
-    pub(crate) fn adjust_next_pos(&self, pos: &mut Pos2, anchor: Anchor, spacing: f32) {
-        match anchor {
-            Anchor::TopRight | Anchor::TopLeft => pos.y += self.height + spacing,
-            Anchor::BottomRight | Anchor::BottomLeft => pos.y -= self.height + spacing,
-        }
     }
 }

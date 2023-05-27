@@ -1,9 +1,8 @@
-use eframe::egui::FontDefinitions;
 use eframe::{
     egui::{Context, Slider, Window},
     App, Frame, NativeOptions,
 };
-use egui::{Style, Visuals};
+use egui::Visuals;
 use egui_notify::{Toast, Toasts};
 use std::time::Duration;
 

@@ -5,8 +5,6 @@
 
 mod toast;
 pub use toast::*;
-mod anchor;
-pub use anchor::*;
 
 #[doc(hidden)]
 pub use egui::__run_test_ctx;
@@ -315,8 +313,7 @@ impl Toasts {
                     if !toast.state.disappearing() {
                         let mut duration_rect = toast_rect;
                         duration_rect.set_left(
-                            toast_rect.right()
-                                - (1. - (current / initial)) * toast_rect.width(),
+                            toast_rect.right() - (1. - (current / initial)) * toast_rect.width(),
                         );
                         painter.rect_stroke(
                             duration_rect,
