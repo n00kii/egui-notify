@@ -1,5 +1,21 @@
-[workspace]
-members = [
-    "egui-notify",
-    "example"
-]
+[package]
+name = "egui-notify"
+version = "0.6.0"
+edition = "2021"
+license = "MIT"
+repository = "https://github.com/ItsEthra/egui-notify"
+description = "Simple notifications library for EGUI"
+authors = ["ItsEthra"]
+readme = "README.md"
+
+[lib]
+path = "src/lib.rs"
+
+[dependencies]
+egui = { version = "0.22", default-features = false }
+
+[dev-dependencies]
+eframe = { version = "0.22", default-features = false, features = [
+    "default_fonts",
+    "glow",
+] }
