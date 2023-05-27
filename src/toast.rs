@@ -1,6 +1,9 @@
-use crate::{Anchor, TOAST_HEIGHT, TOAST_WIDTH};
-use egui::{pos2, vec2, Pos2, Rect};
-use std::{fmt::Debug, time::Duration};
+use crate::{Anchor, TOAST_HEIGHT, TOAST_WIDTH, INFO_COLOR, WARNING_COLOR, SUCCESS_COLOR, ERROR_COLOR};
+use egui::{pos2, vec2, Align2, Color32, Pos2, Rect, Vec2};
+use std::{
+    fmt::{Debug, Display},
+    time::{Duration, SystemTime},
+};
 
 /// Level of importance
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -11,6 +14,31 @@ pub enum ToastLevel {
     Error,
     Success,
     None,
+}
+
+impl ToastLevel {
+    pub(crate) fn color(&self) -> Color32 {
+        match self {
+            Self::Info => INFO_COLOR,
+            Self::Warning => WARNING_COLOR,
+            Self::Error => ERROR_COLOR,
+            Self::Success => SUCCESS_COLOR,
+            Self::None => Color32::WHITE,
+        }
+    }
+}
+
+impl Display for ToastLevel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let icon = match self {
+            Self::Info => egui_phosphor::INFO,
+            Self::Warning => egui_phosphor::QUESTION,
+            Self::Error => egui_phosphor::WARNING_DIAMOND,
+            Self::Success => egui_phosphor::CHECK_CIRCLE,
+            Self::None => "",
+        };
+        write!(f, "{icon}")
+    }
 }
 
 impl Default for ToastLevel {
@@ -62,6 +90,11 @@ pub struct Toast {
     pub(crate) closable: bool,
     pub(crate) show_progress_bar: bool,
 
+    pub(crate) toast_hovered: bool,
+    pub(crate) cross_hovered: bool,
+
+    pub(crate) timestamp: u128,
+
     pub(crate) state: ToastState,
     pub(crate) value: f32,
 }
@@ -83,6 +116,10 @@ fn duration_to_seconds_f32(duration: Duration) -> f32 {
 
 impl Toast {
     fn new(caption: impl Into<String>, options: ToastOptions) -> Self {
+        let timestamp = SystemTime::now()
+            .duration_since(SystemTime::UNIX_EPOCH)
+            .unwrap_or_default()
+            .as_millis();
         Self {
             caption: caption.into(),
             height: TOAST_HEIGHT,
@@ -96,6 +133,11 @@ impl Toast {
             closable: options.closable,
             show_progress_bar: options.show_progress_bar,
             level: options.level,
+
+            toast_hovered: false,
+            cross_hovered: false,
+
+            timestamp,
 
             value: 0.,
             state: ToastState::Appear,
@@ -206,25 +248,8 @@ impl Toast {
         self.state = ToastState::Disapper;
     }
 
-    pub(crate) fn calc_anchored_rect(&self, pos: Pos2, anchor: Anchor) -> Rect {
-        match anchor {
-            Anchor::TopRight => Rect {
-                min: pos2(pos.x - self.width, pos.y),
-                max: pos2(pos.x, pos.y + self.height),
-            },
-            Anchor::TopLeft => Rect {
-                min: pos,
-                max: pos + vec2(self.width, self.height),
-            },
-            Anchor::BottomRight => Rect {
-                min: pos - vec2(self.width, self.height),
-                max: pos,
-            },
-            Anchor::BottomLeft => Rect {
-                min: pos2(pos.x, pos.y - self.height),
-                max: pos2(pos.x + self.width, pos.y),
-            },
-        }
+    pub(crate) fn size(&self) -> Vec2 {
+        vec2(self.width, self.height)
     }
 
     pub(crate) fn adjust_next_pos(&self, pos: &mut Pos2, anchor: Anchor, spacing: f32) {

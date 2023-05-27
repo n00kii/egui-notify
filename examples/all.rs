@@ -103,14 +103,7 @@ fn main() -> eframe::Result<()> {
         "example",
         NativeOptions::default(),
         Box::new(|cc| {
-            cc.egui_ctx.set_style(Style::default());
-
-            let mut font_def = FontDefinitions::default();
-            for data in font_def.font_data.values_mut() {
-                data.tweak.scale = 1.25;
-            }
-            cc.egui_ctx.set_fonts(font_def);
-
+            egui_notify::load_icon_font(&cc.egui_ctx);
             Box::new(ExampleApp {
                 caption: r#"Hello! It's a multiline caption
 Next line
