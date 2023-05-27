@@ -24,11 +24,12 @@ const SUCCESS_COLOR: Color32 = Color32::from_rgb(140, 230, 140);
 /// # Usage
 /// You need to create [`Toasts`] once and call `.show(ctx)` in every frame.
 /// ```
+/// # use std::time::Duration;
 /// use egui_notify::Toasts;
 ///
 /// # egui_notify::__run_test_ctx(|ctx| {
 /// let mut t = Toasts::default();
-/// t.info("Hello, World!").set_duration(Duration::from_secs(5)).set_closable(true);
+/// t.info("Hello, World!").set_duration(Some(Duration::from_secs(5))).set_closable(true);
 /// // More app code
 /// t.show(ctx);
 /// # });
@@ -47,9 +48,9 @@ pub struct Toasts {
 
 impl Toasts {
     /// Creates new [`Toasts`] instance.
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
-            anchor: Anchor::BottomRight,
+            anchor: Anchor::TopRight,
             margin: vec2(8., 8.),
             toasts: vec![],
             spacing: 8.,
@@ -65,11 +66,11 @@ impl Toasts {
     pub fn add(&mut self, toast: Toast) -> &mut Toast {
         if self.reverse {
             self.toasts.insert(0, toast);
-            return self.toasts.get_mut(0).unwrap()
+            return self.toasts.get_mut(0).unwrap();
         } else {
             self.toasts.push(toast);
             let l = self.toasts.len() - 1;
-            return self.toasts.get_mut(l).unwrap()
+            return self.toasts.get_mut(l).unwrap();
         }
     }
 
@@ -105,46 +106,46 @@ impl Toasts {
     }
 
     /// Shortcut for adding a toast with warning `level`.
-    pub fn warning(&mut self, caption: impl Into<String>) -> &mut Toast  {
+    pub fn warning(&mut self, caption: impl Into<String>) -> &mut Toast {
         self.add(Toast::warning(caption))
     }
 
     /// Shortcut for adding a toast with error `level`.
-    pub fn error(&mut self, caption: impl Into<String>) -> &mut Toast  {
+    pub fn error(&mut self, caption: impl Into<String>) -> &mut Toast {
         self.add(Toast::error(caption))
     }
 
     /// Shortcut for adding a toast with no level.
-    pub fn basic(&mut self, caption: impl Into<String>) -> &mut Toast  {
+    pub fn basic(&mut self, caption: impl Into<String>) -> &mut Toast {
         self.add(Toast::basic(caption))
     }
 
     /// Should toasts be added in reverse order?
-    pub fn reverse(mut self, reverse: bool) -> Self {
+    pub const fn reverse(mut self, reverse: bool) -> Self {
         self.reverse = reverse;
         self
     }
 
     /// Where toasts should appear.
-    pub fn with_anchor(mut self, anchor: Anchor) -> Self {
+    pub const fn with_anchor(mut self, anchor: Anchor) -> Self {
         self.anchor = anchor;
         self
     }
 
     /// Sets spacing between adjacent toasts.
-    pub fn with_spacing(mut self, spacing: f32) -> Self {
+    pub const fn with_spacing(mut self, spacing: f32) -> Self {
         self.spacing = spacing;
         self
     }
 
     /// Margin or distance from screen to toasts' bounding boxes
-    pub fn with_margin(mut self, margin: Vec2) -> Self {
+    pub const fn with_margin(mut self, margin: Vec2) -> Self {
         self.margin = margin;
         self
     }
 
     /// Padding or distance from toasts' bounding boxes to inner contents.
-    pub fn with_padding(mut self, padding: Vec2) -> Self {
+    pub const fn with_padding(mut self, padding: Vec2) -> Self {
         self.padding = padding;
         self
     }
@@ -164,10 +165,10 @@ impl Toasts {
             ..
         } = self;
 
-        let mut pos = anchor.screen_corner(ctx.input().screen_rect.max, *margin);
+        let mut pos = anchor.screen_corner(ctx.input(|i| i.screen_rect.max), *margin);
         let p = ctx.layer_painter(LayerId::new(Order::Foreground, Id::new("toasts")));
 
-        let mut remove = None;
+        let mut dismiss = None;
 
         // Remove disappeared toasts
         toasts.retain(|t| !t.state.disappeared());
@@ -182,63 +183,53 @@ impl Toasts {
         });
 
         // `held` used to prevent sticky removal
-        if ctx.input().pointer.primary_released() {
+        if ctx.input(|i| i.pointer.primary_released()) {
             *held = false;
         }
 
+        let visuals = ctx.style().visuals.widgets.noninteractive;
         let mut update = false;
 
         for (i, toast) in toasts.iter_mut().enumerate() {
             // Decrease duration if idling
             if let Some((_, d)) = toast.duration.as_mut() {
                 if toast.state.idling() {
-                    *d -= ctx.input().stable_dt;
+                    *d -= ctx.input(|i| i.stable_dt);
                     update = true;
                 }
             }
-            
-            let toast_font_size = 16.;
-            let inner_toast_height = toast.height - padding.y * 2.;
-            let icon_size = weighted_average(toast_font_size, inner_toast_height, 0.8);
+
             // Create toast label
-            let caption_galley = ctx.fonts().layout(
-                toast.caption.clone(),
-                FontId::proportional(toast_font_size),
-                Color32::LIGHT_GRAY,
-                f32::INFINITY,
-            );
+            let caption_galley = ctx.fonts(|f| {
+                f.layout(
+                    toast.caption.clone(),
+                    FontId::proportional(16.),
+                    visuals.fg_stroke.color,
+                    f32::INFINITY,
+                )
+            });
 
             let (caption_width, caption_height) =
                 (caption_galley.rect.width(), caption_galley.rect.height());
 
+            let line_count = toast.caption.chars().filter(|c| *c == '\n').count() + 1;
+            let icon_width = caption_height / line_count as f32;
 
             // Create toast icon
-            let icon_font = FontId::proportional(icon_size);
+            let icon_font = FontId::proportional(icon_width);
             let icon_galley = if matches!(toast.level, ToastLevel::Info) {
-                Some(
-                    ctx.fonts()
-                        .layout("ℹ".into(), icon_font, INFO_COLOR, f32::INFINITY),
-                )
+                Some(ctx.fonts(|f| f.layout("ℹ".into(), icon_font, INFO_COLOR, f32::INFINITY)))
             } else if matches!(toast.level, ToastLevel::Warning) {
-                Some(
-                    ctx.fonts()
-                        .layout("⚠".into(), icon_font, WARNING_COLOR, f32::INFINITY),
-                )
+                Some(ctx.fonts(|f| f.layout("⚠".into(), icon_font, WARNING_COLOR, f32::INFINITY)))
             } else if matches!(toast.level, ToastLevel::Error) {
-                Some(
-                    ctx.fonts()
-                        .layout("！".into(), icon_font, ERROR_COLOR, f32::INFINITY),
-                )
+                Some(ctx.fonts(|f| f.layout("！".into(), icon_font, ERROR_COLOR, f32::INFINITY)))
             } else if matches!(toast.level, ToastLevel::Success) {
-                Some(
-                    ctx.fonts()
-                        .layout("✅".into(), icon_font, SUCCESS_COLOR, f32::INFINITY),
-                )
+                Some(ctx.fonts(|f| f.layout("✅".into(), icon_font, SUCCESS_COLOR, f32::INFINITY)))
             } else {
                 None
             };
 
-            let (icon_width, icon_height) = if let Some(icon_galley) = icon_galley.as_ref() {
+            let (action_width, action_height) = if let Some(icon_galley) = icon_galley.as_ref() {
                 (icon_galley.rect.width(), icon_galley.rect.height())
             } else {
                 (0., 0.)
@@ -246,17 +237,15 @@ impl Toasts {
 
             // Create closing cross
             let cross_galley = if toast.closable {
-                let cross_fid = FontId::proportional(toast_font_size);
-                let cross_galley = ctx.fonts().layout(
-                    "❌".into(),
-                    cross_fid,
-                    if false {
-                        Color32::WHITE
-                    } else {
-                        Color32::GRAY
-                    },
-                    f32::INFINITY,
-                );
+                let cross_fid = FontId::proportional(icon_width);
+                let cross_galley = ctx.fonts(|f| {
+                    f.layout(
+                        "❌".into(),
+                        cross_fid,
+                        visuals.fg_stroke.color,
+                        f32::INFINITY,
+                    )
+                });
                 Some(cross_galley)
             } else {
                 None
@@ -283,7 +272,7 @@ impl Toasts {
             };
 
             toast.width = icon_width_padded + caption_width + cross_width_padded + (padding.x * 2.);
-            toast.height = icon_height.max(caption_height).max(cross_height) + padding.y * 2.;
+            toast.height = action_height.max(caption_height).max(cross_height) + padding.y * 2.;
 
             let anim_offset = toast.width * (1. - ease_in_cubic(toast.value));
             pos.x += anim_offset * anchor.anim_side();
@@ -293,20 +282,30 @@ impl Toasts {
             pos.x -= anim_offset * anchor.anim_side();
 
             // Draw background
-            p.rect_filled(rect, Rounding::same(4.), Color32::from_rgb(30, 30, 30));
+            p.rect_filled(rect, Rounding::same(4.), visuals.bg_fill);
 
             // Paint icon
-            if let Some(icon_galley) = icon_galley {
-                let oy = toast.height / 2. - icon_height / 2.;
+            if let Some((icon_galley, true)) =
+                icon_galley.zip(Some(toast.level != ToastLevel::None))
+            {
+                let oy = toast.height / 2. - action_height / 2.;
                 let ox = padding.x + icon_x_padding.0;
                 p.galley(rect.min + vec2(ox, oy), icon_galley);
             }
 
             // Paint caption
             let oy = toast.height / 2. - caption_height / 2.;
-            let o_from_icon = if icon_width == 0. { 0.} else {icon_width + icon_x_padding.1};
-            let o_from_cross = if cross_width == 0. { 0.} else {cross_width + cross_x_padding.0};
-            let ox = (toast.width / 2. - caption_width / 2.) + o_from_icon / 2. - o_from_cross / 2. ;
+            let o_from_icon = if action_width == 0. {
+                0.
+            } else {
+                action_width + icon_x_padding.1
+            };
+            let o_from_cross = if cross_width == 0. {
+                0.
+            } else {
+                cross_width + cross_x_padding.0
+            };
+            let ox = (toast.width / 2. - caption_width / 2.) + o_from_icon / 2. - o_from_cross / 2.;
             p.galley(rect.min + vec2(ox, oy), caption_galley);
 
             // Paint cross
@@ -322,24 +321,26 @@ impl Toasts {
                     min: cross_pos,
                 };
 
-                if let Some(pos) = ctx.input().pointer.press_origin() {
+                if let Some(pos) = ctx.input(|i| i.pointer.press_origin()) {
                     if screen_cross.contains(pos) && !*held {
-                        remove = Some(i);
+                        dismiss = Some(i);
                         *held = true;
                     }
                 }
             }
 
             // Draw duration
-            if let Some((initial, current)) = toast.duration {
-                if !toast.state.disappearing() {
-                    p.line_segment(
-                        [
-                            rect.min + vec2(0., toast.height),
-                            rect.max - vec2((1. - (current / initial)) * toast.width, 0.),
-                        ],
-                        Stroke::new(2., Color32::LIGHT_GRAY),
-                    );
+            if toast.show_progress_bar {
+                if let Some((initial, current)) = toast.duration {
+                    if !toast.state.disappearing() {
+                        p.line_segment(
+                            [
+                                rect.min + vec2(0., toast.height),
+                                rect.max - vec2((1. - (current / initial)) * toast.width, 0.),
+                            ],
+                            Stroke::new(4., visuals.fg_stroke.color),
+                        );
+                    }
                 }
             }
 
@@ -348,7 +349,7 @@ impl Toasts {
             // Animations
             if toast.state.appearing() {
                 update = true;
-                toast.value += ctx.input().stable_dt * (*speed);
+                toast.value += ctx.input(|i| i.stable_dt) * (*speed);
 
                 if toast.value >= 1. {
                     toast.value = 1.;
@@ -356,7 +357,7 @@ impl Toasts {
                 }
             } else if toast.state.disappearing() {
                 update = true;
-                toast.value -= ctx.input().stable_dt * (*speed);
+                toast.value -= ctx.input(|i| i.stable_dt) * (*speed);
 
                 if toast.value <= 0. {
                     toast.state = ToastState::Disappeared;
@@ -368,8 +369,8 @@ impl Toasts {
             ctx.request_repaint();
         }
 
-        if let Some(del) = remove {
-            self.toasts.remove(del);
+        if let Some(i) = dismiss {
+            self.toasts[i].dismiss();
         }
     }
 }
@@ -382,8 +383,4 @@ impl Default for Toasts {
 
 fn ease_in_cubic(x: f32) -> f32 {
     1. - (1. - x).powi(3)
-}
-
-fn weighted_average(x: f32, y: f32, x_weight: f32) -> f32 {
-    (x * x_weight) + y * (1. - x_weight)
 }
