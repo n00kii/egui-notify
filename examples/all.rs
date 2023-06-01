@@ -7,13 +7,15 @@ use egui_extras::{Column, TableBuilder};
 use egui_notify::{Toast, ToastLevel, Toasts};
 use std::time::Duration;
 
+const DEFAULT_DURATION: u64 = 3500;
+const ROW_HEIGHT: f32 = 20.;
 struct ExampleApp {
     toasts: Toasts,
     caption: String,
-    closable: bool,
-    show_progress_bar: bool,
-    expires: bool,
-    duration: f32,
+    // closable: bool,
+    // show_progress_bar: bool,
+    // expires: bool,
+    // duration: f32,
 }
 impl App for ExampleApp {
     fn update(&mut self, ctx: &Context, _: &mut Frame) {
@@ -25,46 +27,64 @@ impl App for ExampleApp {
                 });
                 ui.group(|ui| {
                     ui.heading("options");
+                    let mut expires = self.toasts.default_options.duration.is_some();
                     TableBuilder::new(ui)
                         .striped(true)
                         .columns(Column::remainder(), 2)
                         .body(|mut body| {
-                            body.row(20., |mut row| {
+                            body.row(ROW_HEIGHT, |mut row| {
                                 row.col(|ui| {
                                     ui.label("expires?");
                                 });
                                 row.col(|ui| {
-                                    ui.checkbox(&mut self.expires, "");
+                                    if ui.checkbox(&mut expires, "").clicked() {
+                                        if expires {
+                                            self.toasts.default_options.set_duration(
+                                                Duration::from_millis(DEFAULT_DURATION),
+                                            )
+                                        } else {
+                                            self.toasts.default_options.duration = None;
+                                        }
+                                    };
                                 });
                             });
-                            body.row(20., |mut row| {
+                            body.row(ROW_HEIGHT, |mut row| {
                                 row.col(|ui| {
                                     ui.label("closable?");
                                 });
                                 row.col(|ui| {
-                                    ui.checkbox(&mut self.closable, "");
+                                    ui.checkbox(&mut self.toasts.default_options.closable, "");
                                 });
                             });
-                            body.row(20., |mut row| {
+                            body.row(ROW_HEIGHT, |mut row| {
                                 row.col(|ui| {
                                     ui.label("progressbar?");
                                 });
                                 row.col(|ui| {
-                                    ui.checkbox(&mut self.show_progress_bar, "");
+                                    ui.checkbox(
+                                        &mut self.toasts.default_options.show_progress_bar,
+                                        "",
+                                    );
                                 });
                             });
-                            body.row(20., |mut row| {
-                                if !(self.expires || self.closable) {
+                            body.row(ROW_HEIGHT, |mut row| {
+                                if !(expires || self.toasts.default_options.closable) {
+
                                     row.col(|ui| {
                                         ui.label("toasts will have to be closed programatically");
                                     });
                                 } else {
                                     row.col(|ui| {
-                                        ui.label("duration (in s)");
+                                        ui.label("duration (ms)");
                                     });
                                     row.col(|ui| {
-                                        ui.add_enabled_ui(self.expires, |ui| {
-                                            ui.add(Slider::new(&mut self.duration, 1.0..=10.0));
+                                        ui.add_enabled_ui(expires, |ui| {
+                                            if let Some(duration) =
+                                                self.toasts.default_options.duration.as_mut()
+                                            {
+                                                ui.add(Slider::new(&mut duration.0, 1.0..=10.0));
+                                                duration.1 = duration.0;
+                                            };
                                         });
                                     });
                                 }
@@ -111,52 +131,27 @@ impl App for ExampleApp {
                     );
                 });
 
-                let customize_toast = |t: &mut Toast| {
-                    let duration = if self.expires {
-                        Some(Duration::from_millis((1000. * self.duration) as u64))
-                    } else {
-                        None
-                    };
-                    t.set_closable(self.closable)
-                        .set_duration(duration)
-                        .set_show_progress_bar(self.show_progress_bar);
-                };
-                let colored_text =
-                    |text: &str, color: Color32| -> RichText { RichText::new(text).color(color) };
+                fn color(text: &str, level: ToastLevel) -> RichText {
+                    RichText::new(text).color(level.color())
+                }
 
                 ui.group(|ui| {
                     ui.heading("toasts");
 
-                    if ui
-                        .button(colored_text("success", ToastLevel::Success.color()))
-                        .clicked()
-                    {
-                        customize_toast(self.toasts.success(self.caption.clone()));
+                    if ui.button(color("success", ToastLevel::Success)).clicked() {
+                        self.toasts.success(self.caption.clone());
                     }
-
-                    if ui
-                        .button(colored_text("info", ToastLevel::Info.color()))
-                        .clicked()
-                    {
-                        customize_toast(self.toasts.info(self.caption.clone()));
+                    if ui.button(color("info", ToastLevel::Info)).clicked() {
+                        self.toasts.info(self.caption.clone());
                     }
-
-                    if ui
-                        .button(colored_text("warning", ToastLevel::Warning.color()))
-                        .clicked()
-                    {
-                        customize_toast(self.toasts.warning(self.caption.clone()));
+                    if ui.button(color("warning", ToastLevel::Warning)).clicked() {
+                        self.toasts.warning(self.caption.clone());
                     }
-
-                    if ui
-                        .button(colored_text("error", ToastLevel::Error.color()))
-                        .clicked()
-                    {
-                        customize_toast(self.toasts.error(self.caption.clone()));
+                    if ui.button(color("error", ToastLevel::Error)).clicked() {
+                        self.toasts.error(self.caption.clone());
                     }
-
                     if ui.button("basic").clicked() {
-                        customize_toast(self.toasts.basic(self.caption.clone()));
+                        self.toasts.basic(self.caption.clone());
                     }
                 });
 
@@ -194,10 +189,6 @@ Another one
 And another one"#
                     .into(),
                 toasts: Toasts::default(),
-                closable: true,
-                expires: true,
-                show_progress_bar: true,
-                duration: 3.5,
             })
         }),
     )

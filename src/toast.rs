@@ -1,9 +1,12 @@
 use crate::{ERROR_COLOR, INFO_COLOR, SUCCESS_COLOR, TOAST_HEIGHT, TOAST_WIDTH, WARNING_COLOR};
+use crossbeam_channel::{Receiver, Sender};
 use egui::{vec2, Color32, Vec2};
 use std::{
     fmt::{Debug, Display},
-    time::{Duration, SystemTime},
+    time::{Duration, SystemTime}, sync::Arc,
 };
+
+const DEFAULT_TOAST_DURATION: f32 = 3.5;
 
 /// Level of importance
 #[derive(Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -25,7 +28,7 @@ impl ToastLevel {
             Self::Warning => WARNING_COLOR,
             Self::Error => ERROR_COLOR,
             Self::Success => SUCCESS_COLOR,
-            Self::None => Color32::WHITE,
+            Self::None => Color32::GRAY,
         }
     }
 }
@@ -67,43 +70,81 @@ impl ToastState {
 }
 
 /// Container for options for initlizing toasts
+#[derive(Debug, Clone)]
 pub struct ToastOptions {
-    duration: Option<Duration>,
-    level: ToastLevel,
-    closable: bool,
-    show_progress_bar: bool,
+    // (initial, current)
+    pub duration: Option<(f32, f32)>,
+    pub level: ToastLevel,
+    pub closable: bool,
+    pub show_progress_bar: bool,
 }
 
-/// Single notification or *toast*
-#[derive(Debug)]
-pub struct Toast {
-    pub(crate) level: ToastLevel,
-    pub(crate) caption: String,
-    // (initial, current)
-    pub(crate) duration: Option<(f32, f32)>,
-    pub(crate) height: f32,
-    pub(crate) width: f32,
-    pub(crate) closable: bool,
-    pub(crate) show_progress_bar: bool,
-
-    pub(crate) toast_hovered: bool,
-    pub(crate) cross_hovered: bool,
-
-    pub(crate) timestamp: u128,
-
-    pub(crate) state: ToastState,
-    pub(crate) value: f32,
+impl ToastOptions {
+    pub fn set_duration(&mut self, duration: Duration) {
+        let secs = duration_to_seconds_f32(duration);
+        self.duration = Some((secs, secs));
+    }
 }
 
 impl Default for ToastOptions {
     fn default() -> Self {
         Self {
-            duration: Some(Duration::from_millis(3500)),
+            duration: Some((DEFAULT_TOAST_DURATION, DEFAULT_TOAST_DURATION)),
             level: ToastLevel::None,
             closable: true,
             show_progress_bar: true,
         }
     }
+}
+
+pub struct ToastUpdate {
+    pub(crate) caption: Option<String>,
+    pub(crate) level: Option<ToastLevel>,
+    pub(crate) fallback_options: Option<ToastOptions>
+}
+
+impl ToastUpdate {
+    pub fn caption(caption: impl Into<String>) -> Self {
+        Self {
+            caption: Some(caption.into()),
+            fallback_options: None,
+            level: None,
+        }
+    }
+    pub fn with_level(mut self, level: ToastLevel) -> Self {
+        self.level = Some(level);
+        if let Some(fallback_options) = self.fallback_options.as_mut() {
+            fallback_options.level = level;
+        }
+        self
+    }
+    pub fn with_fallback_options(mut self, mut fallback_options: ToastOptions) -> Self {
+        if let Some(level) = self.level {
+            fallback_options.level = level;
+        }
+        self.fallback_options = Some(fallback_options);
+        self
+    }
+}
+
+/// Single notification or *toast*
+#[derive(Debug)]
+pub struct Toast {
+    pub(crate) caption: String,
+    pub(crate) options: ToastOptions,
+    pub(crate) fallback_options: Option<ToastOptions>,
+
+    pub(crate) height: f32,
+    pub(crate) width: f32,
+
+    pub(crate) toast_hovered: bool,
+    pub(crate) cross_hovered: bool,
+
+    pub(crate) timestamp: u128,
+    pub(crate) update_reciever: Option<Receiver<ToastUpdate>>,
+
+    pub(crate) state: ToastState,
+    pub(crate) value: f32,
 }
 
 fn duration_to_seconds_f32(duration: Duration) -> f32 {
@@ -120,24 +161,24 @@ impl Toast {
             caption: caption.into(),
             height: TOAST_HEIGHT,
             width: TOAST_WIDTH,
-            duration: if let Some(dur) = options.duration {
-                let max_dur = duration_to_seconds_f32(dur);
-                Some((max_dur, max_dur))
-            } else {
-                None
-            },
-            closable: options.closable,
-            show_progress_bar: options.show_progress_bar,
-            level: options.level,
-
+            options,
             toast_hovered: false,
             cross_hovered: false,
-
+            update_reciever: None,
             timestamp,
-
             value: 0.,
+            fallback_options: None,
             state: ToastState::Appear,
         }
+    }
+
+    /// Enables the toast to listen to channel updates.
+    pub fn create_channel(&mut self) -> Sender<ToastUpdate> {
+        let (sender, reciever) = crossbeam_channel::unbounded();
+        self.options.duration = None;
+        self.options.closable = false;
+        self.update_reciever = Some(reciever);
+        sender
     }
 
     /// Creates new basic toast, can be closed by default.
@@ -146,73 +187,50 @@ impl Toast {
     }
 
     /// Creates new success toast, can be closed by default.
-    pub fn success(caption: impl Into<String>) -> Self {
-        Self::new(
-            caption,
-            ToastOptions {
-                level: ToastLevel::Success,
-                ..ToastOptions::default()
-            },
-        )
+    pub fn success(mut self) -> Self {
+        self.options.level = ToastLevel::Success;
+        self
     }
 
     /// Creates new info toast, can be closed by default.
-    pub fn info(caption: impl Into<String>) -> Self {
-        Self::new(
-            caption,
-            ToastOptions {
-                level: ToastLevel::Info,
-                ..ToastOptions::default()
-            },
-        )
+    pub fn info(mut self) -> Self {
+        self.options.level = ToastLevel::Info;
+        self
     }
 
     /// Creates new warning toast, can be closed by default.
-    pub fn warning(caption: impl Into<String>) -> Self {
-        Self::new(
-            caption,
-            ToastOptions {
-                level: ToastLevel::Warning,
-                ..ToastOptions::default()
-            },
-        )
+    pub fn warning(mut self) -> Self {
+        self.options.level = ToastLevel::Warning;
+        self
     }
 
     /// Creates new error toast, can not be closed by default.
-    pub fn error(caption: impl Into<String>) -> Self {
-        Self::new(
-            caption,
-            ToastOptions {
-                closable: false,
-                level: ToastLevel::Error,
-                ..ToastOptions::default()
-            },
-        )
+    pub fn error(mut self) -> Self {
+        self.options.level = ToastLevel::Error;
+        self
     }
 
     /// Set the options with a ToastOptions
-    pub fn set_options(&mut self, options: ToastOptions) -> &mut Self {
-        self.set_closable(options.closable);
-        self.set_duration(options.duration);
-        self.set_level(options.level);
+    pub fn with_options(mut self, options: &ToastOptions) -> Self {
+        self.options = options.clone();
         self
     }
 
     /// Change the level of the toast
     pub fn set_level(&mut self, level: ToastLevel) -> &mut Self {
-        self.level = level;
+        self.options.level = level;
         self
     }
 
     /// Can use close the toast?
     pub fn set_closable(&mut self, closable: bool) -> &mut Self {
-        self.closable = closable;
+        self.options.closable = closable;
         self
     }
 
     /// Should a progress bar be shown?
     pub fn set_show_progress_bar(&mut self, show_progress_bar: bool) -> &mut Self {
-        self.show_progress_bar = show_progress_bar;
+        self.options.show_progress_bar = show_progress_bar;
         self
     }
 
@@ -220,9 +238,9 @@ impl Toast {
     pub fn set_duration(&mut self, duration: Option<Duration>) -> &mut Self {
         if let Some(duration) = duration {
             let max_dur = duration_to_seconds_f32(duration);
-            self.duration = Some((max_dur, max_dur));
+            self.options.duration = Some((max_dur, max_dur));
         } else {
-            self.duration = None;
+            self.options.duration = None;
         }
         self
     }
