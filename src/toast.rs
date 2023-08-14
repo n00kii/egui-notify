@@ -100,12 +100,14 @@ impl Default for ToastOptions {
 pub struct ToastUpdate {
     pub(crate) caption: Option<String>,
     pub(crate) level: Option<ToastLevel>,
-    pub(crate) fallback_options: Option<ToastOptions>
+    pub(crate) fallback_options: Option<ToastOptions>,
+    pub(crate) use_original_options: bool,
 }
 
 impl ToastUpdate {
     pub fn caption(caption: impl Into<String>) -> Self {
         Self {
+            use_original_options: false,
             caption: Some(caption.into()),
             fallback_options: None,
             level: None,
@@ -116,6 +118,10 @@ impl ToastUpdate {
         if let Some(fallback_options) = self.fallback_options.as_mut() {
             fallback_options.level = level;
         }
+        self
+    }
+    pub fn with_original_options(mut self) -> Self {
+        self.use_original_options = true;
         self
     }
     pub fn with_fallback_options(mut self, mut fallback_options: ToastOptions) -> Self {
@@ -132,6 +138,7 @@ impl ToastUpdate {
 pub struct Toast {
     pub(crate) caption: String,
     pub(crate) options: ToastOptions,
+    pub(crate) original_options: ToastOptions,
     pub(crate) fallback_options: Option<ToastOptions>,
 
     pub(crate) height: f32,
@@ -161,6 +168,7 @@ impl Toast {
             caption: caption.into(),
             height: TOAST_HEIGHT,
             width: TOAST_WIDTH,
+            original_options: options.clone(),
             options,
             toast_hovered: false,
             cross_hovered: false,

@@ -211,6 +211,9 @@ impl Toasts {
             if let Some(update_res) = toast.update_reciever.as_ref() {
                 match update_res.try_recv() {
                     Ok(update) => {
+                        if update.use_original_options {
+                            toast.options = toast.original_options.clone()
+                        }
                         if let Some(caption) = update.caption {
                             toast.caption = caption
                         }
