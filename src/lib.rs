@@ -337,7 +337,7 @@ impl Toasts {
             let toast_rect = self
                 .anchor
                 .align_size_to_pos(pos2(toast_pos_x, toast_pos_y), toast.size());
-            
+
             let toast_rect_rounding = Rounding::same(4.);
             let mut toast_shadow = Shadow::small_dark();
 

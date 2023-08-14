@@ -3,7 +3,7 @@ use crossbeam_channel::{Receiver, Sender};
 use egui::{vec2, Color32, Vec2};
 use std::{
     fmt::{Debug, Display},
-    time::{Duration, SystemTime}, sync::Arc,
+    time::{Duration, SystemTime},
 };
 
 const DEFAULT_TOAST_DURATION: f32 = 3.5;

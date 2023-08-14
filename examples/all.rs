@@ -2,9 +2,9 @@ use eframe::{
     egui::{Context, Slider, Window},
     App, Frame, NativeOptions,
 };
-use egui::{Align2, Color32, RichText};
+use egui::{Align2, RichText};
 use egui_extras::{Column, TableBuilder};
-use egui_notify::{Toast, ToastLevel, Toasts};
+use egui_notify::{ToastLevel, Toasts};
 use std::time::Duration;
 
 const DEFAULT_DURATION: u64 = 3500;
@@ -69,7 +69,6 @@ impl App for ExampleApp {
                             });
                             body.row(ROW_HEIGHT, |mut row| {
                                 if !(expires || self.toasts.default_options.closable) {
-
                                     row.col(|ui| {
                                         ui.label("toasts will have to be closed programatically");
                                     });
