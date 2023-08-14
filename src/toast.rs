@@ -113,6 +113,18 @@ impl ToastUpdate {
             level: None,
         }
     }
+    pub fn success(caption: impl Into<String>) -> Self {
+        Self::caption(caption).with_level(ToastLevel::Success)
+    }
+    pub fn error(caption: impl Into<String>) -> Self {
+        Self::caption(caption).with_level(ToastLevel::Error)
+    }
+    pub fn warning(caption: impl Into<String>) -> Self {
+        Self::caption(caption).with_level(ToastLevel::Warning)
+    }
+    pub fn info(caption: impl Into<String>) -> Self {
+        Self::caption(caption).with_level(ToastLevel::Info)
+    }
     pub fn with_level(mut self, level: ToastLevel) -> Self {
         self.level = Some(level);
         if let Some(fallback_options) = self.fallback_options.as_mut() {
