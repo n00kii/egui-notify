@@ -212,7 +212,7 @@ impl Toasts {
                 match update_res.try_recv() {
                     Ok(update) => {
                         if update.use_original_options {
-                            toast.options = toast.original_options.clone()
+                            toast.fallback_options = Some(toast.original_options.clone());
                         }
                         if let Some(caption) = update.caption {
                             toast.caption = caption
