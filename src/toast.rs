@@ -160,6 +160,7 @@ pub struct Toast {
     pub(crate) cross_hovered: bool,
 
     pub(crate) timestamp: u128,
+    pub(crate) add_index: usize,
     pub(crate) update_reciever: Option<Receiver<ToastUpdate>>,
 
     pub(crate) state: ToastState,
@@ -186,6 +187,7 @@ impl Toast {
             cross_hovered: false,
             update_reciever: None,
             timestamp,
+            add_index: 0,
             value: 0.,
             fallback_options: None,
             state: ToastState::Appear,
@@ -233,6 +235,12 @@ impl Toast {
     /// Set the options with a ToastOptions
     pub fn with_options(mut self, options: &ToastOptions) -> Self {
         self.options = options.clone();
+        self
+    }
+
+    /// Used for creating a unique identifier for this toast.
+    pub fn with_add_index(mut self, add_index: usize) -> Self {
+        self.add_index = add_index;
         self
     }
 

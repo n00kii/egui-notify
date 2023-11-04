@@ -87,9 +87,9 @@ impl Toasts {
             self.toasts.insert(0, toast);
             return self.toasts.get_mut(0).unwrap();
         } else {
-            self.toasts.push(toast);
-            let l = self.toasts.len() - 1;
-            return self.toasts.get_mut(l).unwrap();
+            let add_index = self.toasts.len();
+            self.toasts.push(toast.with_add_index(add_index));
+            return self.toasts.get_mut(add_index).unwrap();
         }
     }
 
@@ -206,7 +206,7 @@ impl Toasts {
         let mut repaint = false;
 
         for (i, toast) in self.toasts.iter_mut().enumerate() {
-            let toast_id = toasts_layer_id.with(toast.timestamp);
+            let toast_id = toasts_layer_id.with(toast.timestamp).with(toast.add_index);
             let mut disconnect = false;
             if let Some(update_res) = toast.update_reciever.as_ref() {
                 match update_res.try_recv() {

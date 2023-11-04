@@ -152,6 +152,10 @@ impl App for ExampleApp {
                     if ui.button("basic").clicked() {
                         self.toasts.basic(self.caption.clone());
                     }
+                    if ui.button("double basic").clicked() {
+                        self.toasts.basic(self.caption.clone());
+                        self.toasts.basic(self.caption.clone());
+                    }
                 });
 
                 ui.group(|ui| {
