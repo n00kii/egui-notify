@@ -25,7 +25,7 @@ const SUCCESS_COLOR: Color32 = Color32::from_rgb(140, 230, 140);
 /// Load icon font
 pub fn load_icon_font(ctx: &Context) {
     let mut fonts = egui::FontDefinitions::default();
-    egui_phosphor::add_to_fonts(&mut fonts);
+    egui_phosphor::add_to_fonts(&mut fonts, egui_phosphor::Variant::Regular);
 
     let mut phosphor_data = fonts.font_data.get_mut("phosphor").unwrap();
     phosphor_data.tweak = egui::FontTweak {

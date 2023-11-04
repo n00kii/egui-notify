@@ -36,10 +36,10 @@ impl ToastLevel {
 impl Display for ToastLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let icon = match self {
-            Self::Info => egui_phosphor::INFO,
-            Self::Warning => egui_phosphor::QUESTION,
-            Self::Error => egui_phosphor::WARNING_DIAMOND,
-            Self::Success => egui_phosphor::CHECK_CIRCLE,
+            Self::Info => egui_phosphor::regular::INFO,
+            Self::Warning => egui_phosphor::regular::QUESTION,
+            Self::Error => egui_phosphor::regular::WARNING_DIAMOND,
+            Self::Success => egui_phosphor::regular::CHECK_CIRCLE,
             Self::None => "",
         };
         write!(f, "{icon}")
